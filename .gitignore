@@ -1,0 +1,21 @@
+# Sorties de colcon (régénérées à chaque build)
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.pyc
+
+# Éditeur
+.vscode/
+
+# Modèles YOLO (fichiers lourds, re-téléchargeables ou re-exportables)
+*.pt
+*.onnx
+*_openvino_model/
+
+# Données d'essai volumineuses
+*.ulg
+rosbag2_*/
+*.mp4
