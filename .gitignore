@@ -18,4 +18,4 @@ __pycache__/
 # Données d'essai volumineuses
 *.ulg
 rosbag2_*/
-*.mp4
+*.mp4bags/
