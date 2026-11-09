@@ -11,8 +11,12 @@ latencies, log analysis and failure-mode checks.
 
 ## Status
 
-**Phase 0 — Foundations: done.** Simulation stack validated, repository structured,
-first C++ ROS 2 nodes running. Next: reading PX4 state from ROS 2.
+**Phase 1 — Reading PX4 state: done.** A C++ node (`px4_monitor`) reads vehicle
+status and local position from PX4 over uXRCE-DDS; flights are recorded with
+rosbag2 and analysed in PlotJuggler. Next: safe Offboard control.
+
+![Takeoff and landing: setpoint vs estimated altitude](docs/img/phase1_takeoff_landing.png)
+
 
 ## Architecture
 
@@ -50,6 +54,7 @@ Webcam ──► detector_node (Python, YOLOv8n + ByteTrack)
 | px4_msgs | `6bcc947` (git submodule) |
 | Gazebo | Harmonic (gz sim 8.15) |
 | Hardware | Intel i7-6500U, 8 GB RAM, no dedicated GPU |
+| Ground station | QGroundControl (Flatpak — the 5.x AppImages require glibc ≥ 2.36, not available on Ubuntu 22.04) |
 
 PX4 `main` changes quickly: topic names are versioned (e.g. `vehicle_status_v4`)
 and `px4_msgs` must match the PX4 build.
@@ -58,6 +63,7 @@ and `px4_msgs` must match the PX4 build.
 
 ```
 ├── src/
+│   ├── fm_control/      # C++ control package (px4_monitor)
 │   ├── px4_msgs/        # submodule, pinned to the PX4 version in use
 │   └── fm_sandbox/      # C++ learning package (talker / listener)
 ├── scripts/
@@ -83,7 +89,7 @@ ros2 topic list | grep fmu
 ## Roadmap
 
 - [x] **Phase 0** — Simulation stack, repository, first C++ nodes
-- [ ] **Phase 1** — Read PX4 state from ROS 2 (C++ monitor node)
+- [x] **Phase 1** — Read PX4 state from ROS 2 (C++ monitor node)
 - [ ] **Phase 2** — Safe Offboard control: scripted flight, explicit state machine
 - [ ] **Phase 3** — YOLOv8 detection, CPU optimisation (OpenVINO), latency benchmark
 - [ ] **Phase 4** — Tracking (ByteTrack) and target lock logic
