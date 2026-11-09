@@ -12,7 +12,11 @@ find_package(px4_msgs REQUIRED)
 
 add_executable(px4_monitor src/px4_monitor.cpp)
 ament_target_dependencies(px4_monitor rclcpp px4_msgs)
-install(TARGETS px4_monitor DESTINATION lib/${PROJECT_NAME})
+
+add_executable(offboard_demo src/offboard_demo.cpp)
+ament_target_dependencies(offboard_demo rclcpp px4_msgs)
+
+install(TARGETS px4_monitor offboard_demo DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
