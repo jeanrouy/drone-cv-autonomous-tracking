@@ -9,7 +9,7 @@ Checklists for every simulation session. Follow them in order.
 | 1 | T1 | `fm`, then `pgrep -a px4; pgrep -af "gz sim"; pgrep -a MicroXRCEAgent` | no output (no leftover process) |
 | 2 | T1 | `HEADLESS=1 ./scripts/start_sim.sh` | `Ready for takeoff!`, then detach (Ctrl+B, d) |
 | 3 | T1 | `ros2 topic hz /fmu/out/vehicle_local_position_v1` | ~50 Hz |
-| 3b | T1 | `ros2 topic echo /fmu/out/vehicle_local_position_v1 --field heading_var` | < 0.0012 rad² (heading uncertainty < 2°) before any measurement run |
+| 3b | T1 | `ros2 topic echo /fmu/out/vehicle_local_position_v1 --once \| grep heading_var` | < 0.0012 rad² (heading uncertainty < 2°) before any measurement run |
 | 4 | T2 | `flatpak run org.mavlink.qgroundcontrol` | vehicle on map, "Ready To Fly" |
 | 5 | T3 | `fm`, then `ros2 run fm_control px4_monitor` | `DESARME`, mode `Hold` |
 | 6 | T4 | `fm`, then recorder if needed: `ros2 bag record -o bags/<test_name> <topics>` | recording started |

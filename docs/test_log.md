@@ -102,3 +102,29 @@ not explained by heading_var and not significant with 5 runs.
 Limitation: means computed over the whole recording, including ground phase.
 **Action:** heading convergence check (heading_var < 0.0012 rad², ~2°) added to the startup
 procedure before any measurement run.
+
+## 2026-11-11 — E2: loss of offboard stream during mission (test plan)
+
+**Objective:** verify PX4's reaction when the offboard node stops while the vehicle is moving,
+and measure the detection delay.
+
+**Configuration:** COM_OF_LOSS_T = 1.0 s, COM_OBL_RC_ACT = 0 (Position), no RC.
+offboard_demo v3 (with disarm fix).
+
+**Initial conditions:** estimator converged (heading_var < 0.0012 rad²), vehicle landed,
+disarmed, mode Hold.
+
+**Procedure:**
+1. Record vehicle position, status, trajectory setpoints and offboard heartbeat.
+2. Start offboard_demo. When it logs "Cap sur le point 3/5" (vehicle accelerating on leg 2),
+   stop the node with Ctrl+C.
+3. No operator action until the vehicle is disarmed.
+4. Stop recording, then shut PX4 down cleanly to close the ULog.
+
+**Prediction:** Position mode impossible without RC, so fallback to Return (RTL), as observed
+in the informal test of 2026-11-09.
+
+**Success criteria:**
+- E2-a: Offboard exit within COM_OF_LOSS_T + 0.5 s = 1.5 s after the last heartbeat.
+- E2-b: no altitude loss greater than 0.5 m in the 5 s following the cut.
+- E2-c: vehicle lands and disarms without operator action.
