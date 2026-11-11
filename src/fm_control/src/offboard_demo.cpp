@@ -152,7 +152,7 @@ private:
       case State::Mission:
         return true;
       case State::Landing:
-        return is_offboard();
+        return is_offboard() && is_armed();
       case State::Done:
       case State::Aborted:
         return false;
