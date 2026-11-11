@@ -90,19 +90,15 @@ Cause: on disarm, PX4 restores the user intention (Offboard); offboard_demo, sti
 published one last setpoint to the disarmed vehicle. The script used the last setpoint as the end
 of the last leg, so the window included the landing.
 Fixes: node no longer streams to a disarmed vehicle; script ends the last leg at the start of Land
-mode. Bags re-analysed without new flights. Non-regression flight: === regression_01 ===
-Mission complete       : OUI
-Arme -> desarme        : 40.3 s
-Decollage (point 1)    : 7.2 s
-Cote |  duree  |  v max   | depassement | ecart lat. | ecart alt.
-  1  |   1.9 s |  3.0 m/s |      0.15 m |     0.02 m |     0.14 m
-  2  |   1.9 s |  3.0 m/s |      0.17 m |     0.05 m |     0.09 m
-  3  |   1.9 s |  3.0 m/s |      0.21 m |     0.04 m |     0.11 m
-  4  |   1.9 s |  3.0 m/s |      0.15 m |     0.04 m |     0.11 m
-Ecart a l'atterrissage : 0.09 m
-.
+mode. Bags re-analysed without new flights. Non-regression flight: PASS (mission completed, all metrics within campaign range).
 
 **Anomaly 2 — cross-track error decreasing over time.** Run 1: 0.12–0.22 m on all legs, decreasing
 along the flight; run 5: 0.02–0.06 m. Hypothesis 1 (yaw rotation at takeoff) rejected: the error is
-not concentrated on leg 1. Hypothesis 2 (EKF2 heading/bias convergence after start-up): <to be
-checked with heading_var and eph>.
+not concentrated on leg 1. HHypothesis 2 (EKF2 heading convergence after start-up): supported for run 1. Mean heading
+uncertainty (sqrt of heading_var): run 1 7.95°, runs 2–5 1.1–1.6°. Orders of magnitude consistent
+(8° over a 4 m leg allows up to ~0.56 m; 1.5° allows ~0.1 m). eph constant (0.151 m) on all runs:
+horizontal position estimate not involved. Residual decrease between runs 2 and 5 (0.16 → 0.06 m)
+not explained by heading_var and not significant with 5 runs.
+Limitation: means computed over the whole recording, including ground phase.
+**Action:** heading convergence check (heading_var < 0.0012 rad², ~2°) added to the startup
+procedure before any measurement run.
