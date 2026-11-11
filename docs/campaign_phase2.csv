@@ -1,0 +1,6 @@
+bag,completed,mission_s,takeoff_s,max_overshoot_m,max_cross_track_m,max_alt_dev_m,max_speed_ms,landing_offset_m
+campaign_01,True,39.8,7.1,0.23,0.22,0.12,3.02,0.15
+campaign_02,True,40.0,7.1,0.24,0.16,0.12,3.01,0.08
+campaign_03,True,40.0,7.2,0.22,0.08,0.11,3.02,0.08
+campaign_04,True,40.2,7.1,0.21,0.08,0.13,3.06,0.05
+campaign_05,True,40.0,7.1,0.23,0.06,0.11,3.05,0.07
