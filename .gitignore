@@ -21,3 +21,7 @@ rosbag2_*/
 *.mp4
 bags/
 
+models/
+runs/
+data/
+data/
