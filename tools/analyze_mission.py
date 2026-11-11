@@ -46,7 +46,7 @@ def read_bag(path):
         if topic == POSITION_TOPIC:
             positions.append((t, msg.x, msg.y, msg.z, math.hypot(msg.vx, msg.vy)))
         elif topic == STATUS_TOPIC:
-            statuses.append((t, msg.arming_state))
+            statuses.append((t, msg.arming_state, msg.nav_state))
         elif topic == SETPOINT_TOPIC:
             setpoints.append((t, msg.position[0], msg.position[1], msg.position[2]))
     return positions, statuses, setpoints
@@ -56,10 +56,10 @@ def read_bag(path):
 def arming_window(statuses):
     """Instants d'armement et de desarmement (None si absents)."""
     armed = VehicleStatus.ARMING_STATE_ARMED
-    t_arm = next((t for t, state in statuses if state == armed), None)
+    t_arm = next((t for t, state , _ in statuses if state == armed), None)
     if t_arm is None:
         return None, None
-    t_disarm = next((t for t, state in statuses if t > t_arm and state != armed), None)
+    t_disarm = next((t for t, state , _ in statuses if t > t_arm and state != armed), None)
     return t_arm, t_disarm
 
 
@@ -115,6 +115,8 @@ def analyse(path):
     end = position_at(positions, t_disarm) if t_disarm is not None else positions[-1]
 
     targets = find_targets(setpoints)
+    land = VehicleStatus.NAVIGATION_STATE_AUTO_LAND
+    t_land = next((t for t, _, nav in statuses if t > t_arm and nav == land), None)
     takeoff_target = targets[0][1:]
     takeoff_reached = next((t for t, px, py, pz, _ in positions
                             if t >= t_arm and math.dist((px, py, pz), takeoff_target) < REACHED_TOLERANCE),
@@ -125,7 +127,10 @@ def analyse(path):
         prev, target = targets[i - 1], targets[i]
         if math.hypot(target[1] - prev[1], target[2] - prev[2]) < MIN_LEG_LENGTH:
             continue
-        t_end = targets[i + 1][0] if i + 1 < len(targets) else setpoints[-1][0]
+        if i + 1 < len(targets):
+            t_end = targets[i + 1][0]
+        else:
+            t_end = t_land if t_land is not None else setpoints[-1][0]
         leg = analyse_leg(positions, prev, target, t_end)
         if leg is not None:
             legs.append(leg)
