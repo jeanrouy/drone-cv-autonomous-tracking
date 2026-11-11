@@ -10,12 +10,24 @@ latencies, log analysis and failure-mode checks.
 > embedded computer vision, flight control architectures and C++.
 
 ## Status
-
-**Phase 1 — Reading PX4 state: done.** A C++ node (`px4_monitor`) reads vehicle
-status and local position from PX4 over uXRCE-DDS; flights are recorded with
-rosbag2 and analysed in PlotJuggler. Next: safe Offboard control.
+**Phase 2 — Safe Offboard control: done.** A C++ node flies a scripted mission (takeoff,
+4 m square, landing) through an explicit state machine, and hands control back when PX4 or the
+operator leaves Offboard. Validated by a 5-run campaign and a loss-of-stream failsafe test.
+Next: YOLOv8 detection on CPU.
 
 ![Takeoff and landing: setpoint vs estimated altitude](docs/img/phase1_takeoff_landing.png)
+
+## Key results so far
+
+- **Scripted Offboard mission:** 5/5 runs completed, mission time 40.0 ± 0.2 s,
+  corner overshoot ≤ 0.24 m ([campaign data](docs/campaign_phase2.csv)).
+- **Loss of the offboard stream in flight:** detected 1.04 s after the last heartbeat
+  (COM_OF_LOSS_T = 1.0 s), Return mode engaged 10 ms later, no altitude loss.
+  Measured independently from the rosbag and the PX4 ULog (agreement within 0.02 s).
+- **Anomalies found and documented:** an analysis artefact that revealed a node bug (fixed),
+  and estimator heading convergence biasing the first flight after start-up
+  (warm-up flight added to the procedure).
+- Full test log: [docs/test_log.md](docs/test_log.md) · Procedures: [docs/procedures.md](docs/procedures.md)
 
 
 ## Architecture
@@ -62,6 +74,8 @@ and `px4_msgs` must match the PX4 build.
 ## Repository structure
 
 ```
+├── tools/               # flight analysis scripts (mission, failsafe)
+├── docs/                # test log, procedures, campaign data, figures
 ├── src/
 │   ├── fm_control/      # C++ control package (px4_monitor)
 │   ├── px4_msgs/        # submodule, pinned to the PX4 version in use
@@ -69,6 +83,7 @@ and `px4_msgs` must match the PX4 build.
 ├── scripts/
 │   └── start_sim.sh     # MicroXRCEAgent + PX4 SITL in one command (tmux)
 └── prototypes/python/   # early Python experiments (Offboard, waypoints, camera)
+
 ```
 
 ## Quick start
@@ -90,7 +105,7 @@ ros2 topic list | grep fmu
 
 - [x] **Phase 0** — Simulation stack, repository, first C++ nodes
 - [x] **Phase 1** — Read PX4 state from ROS 2 (C++ monitor node)
-- [ ] **Phase 2** — Safe Offboard control: scripted flight, explicit state machine
+- [x] **Phase 2** — Safe Offboard control: scripted flight, explicit state machine
 - [ ] **Phase 3** — YOLOv8 detection, CPU optimisation (OpenVINO), latency benchmark
 - [ ] **Phase 4** — Tracking (ByteTrack) and target lock logic
 - [ ] **Phase 5** — Visual servoing controller (PID) with safety layers
