@@ -128,3 +128,30 @@ in the informal test of 2026-11-09.
 - E2-a: Offboard exit within COM_OF_LOSS_T + 0.5 s = 1.5 s after the last heartbeat.
 - E2-b: no altitude loss greater than 0.5 m in the 5 s following the cut.
 - E2-c: vehicle lands and disarms without operator action.
+
+
+### Results (2026-11-11)
+
+**Initial conditions:** heading_var = 0.0004 rad² (~1.2°) after a warm-up flight; landed, disarmed, Hold.
+Cut during leg 2 (vehicle accelerating). Data: bags/e2_01 and PX4 ULog 2026-11-11/15_09_53.ulg.
+
+| Measurement | Rosbag (ROS 2 side) | ULog (PX4 internal) |
+|---|---|---|
+| Last heartbeat → signal loss detected | — | 1.04 s |
+| Signal loss → mode change | — | 0.01 s |
+| Last heartbeat → Offboard exit | 1.07 s | 1.05 s |
+
+| Criterion | Threshold | Measured | Verdict |
+|---|---|---|---|
+| E2-a Offboard exit | ≤ 1.5 s | 1.07 s | PASS |
+| E2-b altitude loss (5 s) | < 0.5 m | 0.01 m | PASS |
+| E2-c lands and disarms without operator | — | yes, 24.9 s after cut | PASS |
+
+**Observations:**
+- Prediction confirmed: Return mode (no RC, Position mode unavailable). QGC: "Failsafe activated:
+  switching to RTL — No offboard signal, No manual control input".
+- Not predicted: climb to 10.8 m (≈ 9 m above cut altitude) before returning: Return mode altitude
+  logic, RTL_* parameters to be reviewed.
+- Touchdown 0.03 m from home (more precise than the scripted mission landing).
+- Both sources agree within 0.02 s. Detection delay = COM_OF_LOSS_T + ~40 ms (heartbeat period
+  and check rate). No added delay between detection and reaction in this configuration.
