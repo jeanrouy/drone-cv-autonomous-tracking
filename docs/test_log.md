@@ -155,3 +155,54 @@ Cut during leg 2 (vehicle accelerating). Data: bags/e2_01 and PX4 ULog 2026-11-1
 - Touchdown 0.03 m from home (more precise than the scripted mission landing).
 - Both sources agree within 0.02 s. Detection delay = COM_OF_LOSS_T + ~40 ms (heartbeat period
   and check rate). No added delay between detection and reaction in this configuration.
+
+  ## 2026-11-11 — P3: YOLOv8n CPU benchmark (test plan)
+
+**Objective:** choose the detector configuration for the project and check the phase 3 criterion.
+
+**Setup:** laptop i7-6500U (2 cores / 4 threads), 8 GB RAM, on AC power, browser closed.
+Sequence: data/sequences/ref_01.mkv (1800 frames, 640x480 @ 30 FPS, see docs/sequences.md).
+Model: YOLOv8n (COCO), class "person" only, conf = 0.25. First 10 frames excluded (warm-up).
+
+**Configurations:** PyTorch 640, PyTorch 320, OpenVINO 640, OpenVINO 320.
+**Conditions:** idle; then PX4 SITL + Gazebo running (headless, vehicle landed).
+
+**Measurements (per frame):** detector call latency (median, p95, max) with preprocess /
+inference / postprocess breakdown; overall throughput (frames per second including video
+decoding); detection rate (frames with at least one person); mean confidence.
+
+**Success criteria:**
+- P3-a: chosen configuration reaches >= 10 FPS throughput with Gazebo running.
+- P3-b: its detection rate is within 5 points of the PyTorch 640 reference (same condition).
+
+### Results (2026-11-12)
+
+| Config | Idle FPS | Gazebo FPS | Gazebo median / p95 | Detection |
+|---|---|---|---|---|
+| PyTorch 640 | 10.4 | 8.8 | 111.4 / 117.4 ms | 80.3 % |
+| OpenVINO 640 | 10.9 | 8.7 | 111.1 / 118.7 ms | 80.3 % |
+| PyTorch 320 | 28.7 | 22.8 | 41.4 / 46.0 ms | 79.8 % |
+| **OpenVINO 320** | 37.5 | **28.7** | **32.6 / 36.2 ms** | 79.8 % |
+
+Full data: docs/bench_phase3.csv.
+
+| Criterion | Threshold | OpenVINO 320 (Gazebo) | Verdict |
+|---|---|---|---|
+| P3-a throughput | >= 10 FPS | 28.7 FPS | PASS |
+| P3-b detection vs PyTorch 640 | within 5 points | -0.5 point | PASS |
+
+**Decision:** OpenVINO 320 selected for the detector node.
+
+**Observations:**
+- OpenVINO speed-up: +6 % at 640, +25 % at 320 (about +40 % per pixel, since OpenVINO runs
+  320x320 vs 256x320 for PyTorch rectangular inference). Smaller than the 2-3x often quoted:
+  PyTorch CPU kernels are already optimised on Intel; INT8 quantisation not tested.
+- Under Gazebo load: throughput -16 to -24 % (predicted -30 to -50 %), p95 increases more than
+  the median. OpenVINO advantage vanishes at 640 but holds at 320 (-21 % latency).
+- Detection rate unchanged by backend or load; 640 -> 320 costs 0.5 point on this sequence.
+- Under load, median latency (32.6 ms) is close to the camera frame period (33.3 ms): the node
+  must always process the latest frame and drop the others.
+
+**Limitations:** simulation headless, vehicle landed, no QGC and no ROS nodes running (lighter
+than real test conditions); one run per configuration; one indoor sequence; detector only
+(capture and ROS publishing overhead measured in the node).
