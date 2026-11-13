@@ -206,3 +206,28 @@ Full data: docs/bench_phase3.csv.
 **Limitations:** simulation headless, vehicle landed, no QGC and no ROS nodes running (lighter
 than real test conditions); one run per configuration; one indoor sequence; detector only
 (capture and ROS publishing overhead measured in the node).
+
+## 2026-11-13 — P3: detector node end-to-end
+
+**Setup:** detector_node (OpenVINO 320, conf 0.25, publish_image off), C922 live at 30 FPS,
+person in front of the camera. Statistics every 5 s, first ~15 s excluded (start-up transient:
+camera exposure, OpenVINO caches, DDS discovery).
+
+| Condition | Processed | Dropped | Latency median | p95 |
+|---|---|---|---|---|
+| Node alone | 30.0 img/s | 0 | 33–35 ms | ~40 ms |
+| SITL + QGC + px4_monitor + node (2 min) | 22.5–23.4 img/s | ~7/s (23 %) | 50–58 ms | 73–80 ms |
+
+**Criterion P3-a (>= 10 FPS with simulation running):** 23 FPS under realistic load: **PASS**
+(margin x2.3).
+
+**Observations:**
+- Latest-frame design validated: latency stable over 2 min despite dropped frames (no backlog).
+- Annotated image publishing (node alone, rqt_image_view open): median +10–15 ms, p95 +~20 ms,
+  more dropped frames. Kept disabled during tests, enabled only for debugging or demos.
+- Node alone is ~10 ms above the detector-only benchmark: 10 ms polling timer (5 ms average
+  wait) and message building. Possible improvement: process frames on arrival (event) instead
+  of polling.
+- Under realistic load, ~16 ms above the benchmark expectation: likely CPU contention with QGC
+  and DDS traffic (hypothesis, not decomposed).
+- 54 ms capture-to-publish latency = 8 cm travelled by a person walking at 1.5 m/s.
