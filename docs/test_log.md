@@ -252,3 +252,7 @@ contention). Valid run vs a control measurement taken the same day: detection on
 median; detection + tracking 34.2 ms (1/2 frames) and 39.1 ms (full rate), i.e. tracking adds
 ~10–15 ms. Today's p95 was elevated even in the control (41.7 ms vs 25.9 ms on 2026-11-12):
 only medians are compared.
+**Interpretation (checked on the video):** track C is the target itself, followed continuously
+after the occlusion: during the planned "exit" its arm stayed visible at the image edge.
+Track B appears while the target is partly hidden behind a chair carrying a puffer jacket:
+probably a second box on the ambiguous body + jacket area (snapshot at 47.5 s: two boxes, one on the target and a larger one enclosing the target and the chair with the jacket).
