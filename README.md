@@ -10,10 +10,9 @@ latencies, log analysis and failure-mode checks.
 > embedded computer vision, flight control architectures and C++.
 
 ## Status
-**Phase 2 — Safe Offboard control: done.** A C++ node flies a scripted mission (takeoff,
-4 m square, landing) through an explicit state machine, and hands control back when PX4 or the
-operator leaves Offboard. Validated by a 5-run campaign and a loss-of-stream failsafe test.
-Next: YOLOv8 detection on CPU.
+**Phase 3 — Detection: done.** A ROS 2 Python node runs YOLOv8n (OpenVINO, 320 px) on the
+camera stream and publishes person detections at 23 FPS with the full simulation running.
+Configuration chosen from a CPU benchmark. Next: tracking and target lock.
 
 ![Takeoff and landing: setpoint vs estimated altitude](docs/img/phase1_takeoff_landing.png)
 
@@ -28,7 +27,10 @@ Next: YOLOv8 detection on CPU.
   and estimator heading convergence biasing the first flight after start-up
   (warm-up flight added to the procedure).
 - Full test log: [docs/test_log.md](docs/test_log.md) · Procedures: [docs/procedures.md](docs/procedures.md)
-
+- **Perception on a 2-core laptop CPU:** YOLOv8n benchmarked in 4 configurations on a recorded
+  reference sequence ([data](docs/bench_phase3.csv)); OpenVINO 320 selected (28.7 FPS with
+  Gazebo, detection within 0.5 point of the 640 px reference). Detector node: 23 FPS and
+  54 ms median capture-to-publish latency with SITL, QGC and monitoring running.
 
 ## Architecture
 
@@ -77,6 +79,7 @@ and `px4_msgs` must match the PX4 build.
 ├── tools/               # flight analysis scripts (mission, failsafe)
 ├── docs/                # test log, procedures, campaign data, figures
 ├── src/
+│   ├── fm_perception/   # Python perception package (detector_node)
 │   ├── fm_control/      # C++ control package (px4_monitor)
 │   ├── px4_msgs/        # submodule, pinned to the PX4 version in use
 │   └── fm_sandbox/      # C++ learning package (talker / listener)
