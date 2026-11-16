@@ -231,3 +231,24 @@ camera exposure, OpenVINO caches, DDS discovery).
 - Under realistic load, ~16 ms above the benchmark expectation: likely CPU contention with QGC
   and DDS traffic (hypothesis, not decomposed).
 - 54 ms capture-to-publish latency = 8 cm travelled by a person walking at 1.5 m/s.
+## 2026-11-16 — P4: ByteTrack offline evaluation on ref_01
+
+**Setup:** OpenVINO 320, conf 0.25, ByteTrack (default config), full rate and 1 frame out of 2.
+
+**Track timeline (identical at both rates):**
+- Track A: 12.4–50.7 s, presence 96 % (target followed through approach and retreat).
+- Track B: 47.2–50.8 s, simultaneous with A.
+- Track C: 48.8–60.0 s, starts before A ends, continues to the end.
+Offline tracking is deterministic: a re-run gave the same timeline to 0.1 s.
+
+**Interpretation (hypothesis, to be confirmed visually):** during the occlusion, the target is
+split into several boxes, each getting its own track; track C takes over from track A.
+**Design consequence for the target selector:** never switch target while locked, even to a
+track closer to the centre; after a loss, re-lock on the track nearest to the target's last
+known position; use the image-centre rule only for the first lock or after a long loss.
+
+**Latency:** a first run was invalid (two evaluations in parallel, browser open: CPU
+contention). Valid run vs a control measurement taken the same day: detection only 24.6 ms
+median; detection + tracking 34.2 ms (1/2 frames) and 39.1 ms (full rate), i.e. tracking adds
+~10–15 ms. Today's p95 was elevated even in the control (41.7 ms vs 25.9 ms on 2026-11-12):
+only medians are compared.

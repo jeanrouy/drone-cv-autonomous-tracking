@@ -39,3 +39,10 @@ Reverse order: command first, infrastructure last.
 
 - Note PX4 commit, repository commit and modified parameters in the test log.
 - Define the success criterion **before** running the test.
+
+## Perception benchmarks
+
+- Laptop on AC power, browser and other heavy applications closed.
+- **One benchmark at a time**: two measurements running in parallel share the CPU and invalidate
+  each other's latencies (detection results remain valid offline).
+- Simulation only when the condition under test requires it (e.g. condition "gazebo").
