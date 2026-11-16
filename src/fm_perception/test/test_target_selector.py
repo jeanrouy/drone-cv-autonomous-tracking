@@ -1,3 +1,5 @@
+import pytest
+
 from fm_perception.target_selector import LOCKED, LOST, SEARCHING, TargetSelector, Track
 
 
@@ -19,19 +21,27 @@ def test_ne_change_pas_de_cible_si_une_piste_plus_centrale_apparait():
     assert target.track_id == 1
 
 
-def test_retrouve_la_meme_piste_apres_une_courte_perte():
-    selector = TargetSelector()
+def test_une_absence_breve_ne_declenche_pas_lost():
+    selector = TargetSelector(lost_grace=0.35)
     selector.update(0.0, [track(1, 0.5, 0.5)])
-    assert selector.update(0.1, []).state == LOST
-    target = selector.update(0.2, [track(1, 0.52, 0.5)])
+    target = selector.update(0.2, [])
+    assert (target.state, target.track_id) == (LOCKED, 1)
+    assert target.time_since_seen == pytest.approx(0.2)
+
+
+def test_retrouve_la_meme_piste_apres_une_perte():
+    selector = TargetSelector(lost_grace=0.35)
+    selector.update(0.0, [track(1, 0.5, 0.5)])
+    assert selector.update(0.5, []).state == LOST
+    target = selector.update(0.6, [track(1, 0.52, 0.5)])
     assert (target.state, target.track_id) == (LOCKED, 1)
 
 
 def test_reverrouille_une_piste_voisine_seulement_apres_le_delai():
-    selector = TargetSelector(relock_radius=0.15, relock_delay=0.3)
+    selector = TargetSelector(relock_radius=0.15, lost_grace=0.2, relock_delay=0.4)
     selector.update(0.0, [track(1, 0.5, 0.5)])
-    assert selector.update(0.1, [track(7, 0.55, 0.5)]).state == LOST   # trop tot
-    target = selector.update(0.4, [track(7, 0.55, 0.5)])
+    assert selector.update(0.3, [track(7, 0.55, 0.5)]).state == LOST   # perdue, mais trop tot
+    target = selector.update(0.5, [track(7, 0.55, 0.5)])
     assert (target.state, target.track_id) == (LOCKED, 7)
 
 

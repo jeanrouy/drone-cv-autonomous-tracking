@@ -46,8 +46,9 @@ def touches_border(track, margin):
 
 
 class TargetSelector:
-    def __init__(self, relock_radius=0.15, relock_delay=0.3, max_lost_time=2.0, border_margin=0.02):
+    def __init__(self, relock_radius=0.15, lost_grace=0.35, relock_delay=0.5, max_lost_time=2.0, border_margin=0.02):
         self.relock_radius = relock_radius    # distance max (normalisee) pour reprendre une autre piste
+        self.lost_grace = lost_grace          # s : absence toleree avant de declarer LOST (anti-rebond)
         self.relock_delay = relock_delay      # s : d'abord laisser le tracker retrouver le meme id
         self.max_lost_time = max_lost_time    # s : au-dela, nouvelle recherche
         self.border_margin = border_margin
@@ -76,10 +77,12 @@ class TargetSelector:
             return replace(self._target)
 
         # 3. La piste verrouillee est absente de cette image
+        self._target.time_since_seen = t - self._last_seen
         if self._target.state == LOCKED:
+            if self._target.time_since_seen < self.lost_grace:
+                return replace(self._target)   # absence breve : on reste LOCKED sur la derniere position
             self._target.state = LOST
             self._log(t, f"piste {self._target.track_id} perdue")
-        self._target.time_since_seen = t - self._last_seen
 
         candidates = []
         if self._target.time_since_seen >= self.relock_delay:

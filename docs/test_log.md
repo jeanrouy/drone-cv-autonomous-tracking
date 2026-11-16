@@ -256,3 +256,27 @@ only medians are compared.
 after the occlusion: during the planned "exit" its arm stayed visible at the image edge.
 Track B appears while the target is partly hidden behind a chair carrying a puffer jacket:
 probably a second box on the ambiguous body + jacket area (snapshot at 47.5 s: two boxes, one on the target and a larger one enclosing the target and the chair with the jacket).
+
+## 2026-11-16 — P4: target selector, offline evaluation on ref_01
+
+**Prediction vs result (v1: relock_delay 0.3 s, no grace):**
+- Initial lock at 12.43 s on the target: as predicted.
+- Track B (target + chair box) from 47.2 s: selector stayed on the target: as predicted.
+- At 50.7 s: predicted wait then new search; actual: relock on the continuation track after
+  0.30 s, because the target's last position was already near the edge (prediction wrong).
+
+**Defect found:** 20 LOCKED/LOST cycles between 47.9 and 50.7 s (target detected one frame out
+of two or three behind the chair; tracker keeps the same id). Gaps 0.07–0.30 s: state flapping
+for the controller, and zero margin with relock_delay (0.30 s), i.e. near-relock on the
+target + chair box.
+
+**Fix (v2):** debounce `lost_grace` = 0.35 s (> longest observed gap): short absences stay LOCKED
+at the last known position with `time_since_seen` > 0. `relock_delay` raised to 0.5 s.
+Unit tests updated (7). Re-run: 3 log entries instead of 42, no flapping, lost at 51.03 s,
+relock at 51.17 s (predicted 51.05 / 51.20 s, difference = frame quantisation). LOST time
+1.7 s -> 0.1 s.
+
+**Observation:** `touches_border` true 96 % of locked time: camera on a table at ~1 m, the
+target's feet are never in the image, so the box always touches the bottom edge. Flag correct
+but uninformative in this setup; definition to revisit in phase 5 (top/bottom = height
+unreliable, left/right = centre biased) with the onboard camera geometry.
