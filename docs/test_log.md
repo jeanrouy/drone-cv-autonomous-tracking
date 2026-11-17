@@ -280,3 +280,53 @@ relock at 51.17 s (predicted 51.05 / 51.20 s, difference = frame quantisation). 
 target's feet are never in the image, so the box always touches the bottom edge. Flag correct
 but uninformative in this setup; definition to revisit in phase 5 (top/bottom = height
 unreliable, left/right = centre biased) with the onboard camera geometry.
+
+## 2026-11-16 — E8: target lock with passers-by (test plan)
+
+**Objective:** verify that the selector keeps the same person when other people pass by or
+in front of it.
+
+**Data:** data/sequences/pub_01.mp4 (public video, see docs/sequences.md). Key events:
+<time: event, e.g. "12 s: person B crosses in front of person A">.
+
+**Configuration:** OpenVINO 320, ByteTrack, selector v2 (lost_grace 0.35 s, relock_delay 0.5 s,
+relock_radius 0.15, max_lost_time 2.0 s). Full rate, then 1 frame out of 2 (harder than the
+~23 FPS measured in the node).
+
+**Method (ground truth by human review):** the annotated video shows the locked target in green.
+Each change of followed track id, and each crossing, is reviewed and classified:
+- correct: same person, recovered under a new id;
+- wrong selection: the selector moved to another person;
+- tracker id swap: the locked id itself jumped to another person (not a selector decision).
+
+**Prediction:** Initial lock on the person on the opposite sidewalk, lost when the two people appear at th same time (10s).
+
+**Success criterion:** no wrong selection and no tracker id swap while the target is visible.
+Relocks after a full occlusion are analysed case by case.
+
+### Results (2026-11-17) — FAIL
+
+| Time | Event | Observed (human review) | Classification |
+|---|---|---|---|
+| 1.7 s | initial lock, track 1 | person in the background | — |
+| 8.4–8.55 s | track 1 lost, relock on 6 | 6, in the foreground, passes in front of 1 | wrong selection |
+| 10.5–10.64 s (full rate) | 6 lost, relock on 17 | 6 exits left, another person (17) enters at the same place | wrong selection |
+| 10.5–10.59 s (1/2 frames) | track 5 "recovered" | id 5 moves from the exiting person to the entering one | tracker id swap |
+| 13–14.8 s | lost, new search | followed person left the frame | correct |
+| 14.8 s | initial lock | original target, still visible since the start | — |
+
+**Criterion (no wrong selection, no tracker id swap while the target is visible): FAIL.**
+The original target was visible while the selector followed other people.
+
+**Root causes:**
+1. An occluding passer-by is, by construction, near the target's last position: proximity
+   alone cannot separate target and occluder, whatever the relock delay.
+2. ByteTrack can hand a lost track's id to a new person appearing where the old one was
+   predicted (exit/entry at the same place), more easily at lower frame rate. The selector
+   trusts ids and cannot see it.
+
+**Planned fix (selector v3):** exclude tracks overlapping the target's last box at loss time;
+require a consistent box height to relock; declare the identity broken when the locked id's box
+jumps inconsistently between observations. Expected side effect on ref_01: the relock on the
+arm-only track at 50.7 s will be refused (non-regression run required).
+**Possible later improvement:** appearance-based re-identification (too heavy for the CPU now).
