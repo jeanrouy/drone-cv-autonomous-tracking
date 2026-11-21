@@ -12,6 +12,7 @@ find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/TargetState.msg"
+  "srv/LockTarget.srv"
   DEPENDENCIES std_msgs
 )
 

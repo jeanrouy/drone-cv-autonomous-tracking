@@ -1,0 +1,5 @@
+# Demande de verrouillage de la cible par l'operateur.
+int32 track_id -1    # piste a verrouiller ; -1 : la plus proche du centre de l'image
+---
+bool accepted        # la demande est enregistree (elle s'appliquera des que la piste sera visible)
+string message
