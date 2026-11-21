@@ -330,3 +330,35 @@ require a consistent box height to relock; declare the identity broken when the 
 jumps inconsistently between observations. Expected side effect on ref_01: the relock on the
 arm-only track at 50.7 s will be refused (non-regression run required).
 **Possible later improvement:** appearance-based re-identification (too heavy for the CPU now).
+
+### Iterations after the first failure (2026-11-17)
+
+**Selector v3 (R1 occluder exclusion, R2 size consistency, R3 lateral exit, R4 identity jump):**
+- 8.4 s: occluder (track 6) excluded and rejected by size; ByteTrack recovered the target under
+  the same id after 1.17 s (v2 had relocked on the occluder after 0.5 s). Fixed.
+- 10.9 s: target masked by two passers-by, then **not detected for ~2.5 s** (small, background,
+  partly occluded). Instrumented selector (candidate distance, size ratio, exclusion) showed
+  no target-sized track until 13.4 s; occluders correctly rejected (size ratio 3.8–6.8).
+  After 2 s, automatic re-acquisition (image-centre rule) locked a passer-by: FAIL.
+- conf 0.1 tested (hypothesis: ByteTrack starved of low-score detections): no detection of the
+  target during the gap either. Hypothesis rejected; conf kept at 0.25.
+
+**Decision:** no automatic acquisition or re-acquisition; the operator designates the target
+(see docs/decisions.md, ADR-001).
+
+**Selector v4 — results:**
+
+| Run | Log | Review |
+|---|---|---|
+| pub_01, full rate | lock on request 1.67 s; lost 8.43 s; recovered 9.22 s; lost 10.93 s; waiting for operator 12.55 s | green box on the original target 1.7–10.9 s; no wrong selection |
+| pub_01, 1/2 frames | same sequence (lock 1.75 s, recovered 9.18 s, waiting 12.51 s) | same |
+| pub_01, operator re-designation at 15.1 s | lock on request 15.14 s, track 34 | track 34 = original target |
+| ref_01 (non-regression) | lock 12.43 s; lost 51.03 s; waiting 52.70 s; no lock on the arm-only track | as predicted |
+
+**Criterion (no wrong selection and no tracker id swap while the target is visible): PASS**,
+thanks to the operator-designation policy.
+
+**Known limitation (operating envelope):** a small, distant target partly occluded can go
+undetected for several seconds (YOLOv8n, 320 px input); the system then loses it and waits for
+the operator. The follow-me mission assumes a target a few metres away, occupying a significant
+part of the image. Higher input resolution would help but breaks the 10 FPS criterion (phase 3).
