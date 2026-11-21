@@ -9,6 +9,10 @@ latencies, log analysis and failure-mode checks.
 > Personal project carried out during a gap year at CentraleSupélec to learn
 > embedded computer vision, flight control architectures and C++.
 
+> **No physical drone yet.** Flight runs in PX4 SITL + Gazebo; perception uses a real webcam.
+> Validation is staged, from simulation with a fixed camera (open loop) to a simulated onboard
+> camera (closed loop), with a real drone as the long-term goal. See
+> [docs/approach.md](docs/approach.md).
 ## Status
 **Phase 4 — Tracking and target lock: done.** ByteTrack keeps a stable identity for each
 person; a ROS-free target selector (15 unit tests) locks the person designated by the operator,
