@@ -52,6 +52,9 @@ def main():
     parser.add_argument('--relock-delay', type=float, default=0.5)
     parser.add_argument('--max-lost-time', type=float, default=2.0)
     parser.add_argument('--out', help="video annotee a ecrire (optionnel)")
+    parser.add_argument('--debug', action='store_true', help="afficher les candidats pendant les pertes")
+    parser.add_argument('--lock-at', type=float, nargs='*', default=[0.0],
+                        help="instants (s) ou l'operateur demande un verrouillage sur la piste la plus centrale")
     args = parser.parse_args()
 
     model = YOLO(args.model, task='detect')
@@ -67,6 +70,8 @@ def main():
     followed_ids = []
     frame_index = -1
 
+    last_debug = -1.0
+    lock_times = sorted(args.lock_at)
     while True:
         ok, frame = cap.read()
         if not ok:
@@ -84,7 +89,15 @@ def main():
                                             result.boxes.xywhn.tolist(), result.boxes.conf.tolist()):
                 tracks.append(Track(tid, u, v, w, h, c))
 
+        while lock_times and t >= lock_times[0]:
+            selector.request_lock()
+            lock_times.pop(0)
         target = selector.update(t, tracks)
+        if args.debug and target.state == LOST and t - last_debug >= 0.2:
+            last_debug = t
+            details = ", ".join(f"id {i}: d={d:.2f} h x{r:.2f}{' EXCLUE' if ex else ''}"
+                                for i, d, r, ex in selector.diagnostics) or "aucune piste"
+            print(f"  [debug {t:6.2f} s] {details}")
         durations[target.state] += step
         if target.state == LOCKED and target.touches_border:
             border_time += step
