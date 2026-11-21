@@ -362,3 +362,47 @@ thanks to the operator-designation policy.
 undetected for several seconds (YOLOv8n, 320 px input); the system then loses it and waits for
 the operator. The follow-me mission assumes a target a few metres away, occupying a significant
 part of the image. Higher input resolution would help but breaks the 10 FPS criterion (phase 3).
+
+## 2026-11-21 — P4: live target lock (detector_node with tracking and selector)
+
+**Setup:** detector_node v2 (OpenVINO 320, ByteTrack, selector v4), C922 live, service
+/fm/lock_target (fm_interfaces/LockTarget), topic /fm/target (TargetState).
+
+**Functional checks (live):**
+| Check | Result |
+|---|---|
+| L1 no lock without operator request | PASS |
+| L2 lock on request, nearest to the centre | PASS (lock 90 ms after the request) |
+| L3 tracking while moving, occlusion behind an obstacle | PASS (occlusions > 2 s lead to LOST then SEARCHING, as specified) |
+| L4 definitive loss, no automatic re-acquisition | PASS |
+| L5 lock on request by track id | PASS |
+
+**Mission note (L3):** max_lost_time = 2 s is short for a person walking behind an obstacle;
+to be revisited in phase 5 together with the controller's behaviour in LOST and SEARCHING.
+
+**Performance anomaly (SITL + QGC + px4_monitor + node):** 8–10.6 img/s, median latency
+105–139 ms, p95 up to 226 ms, below the 10 FPS criterion at times (predicted ~20 img/s,
+65–70 ms). Present before any target lock, so not caused by the selector.
+
+**Diagnosis:**
+- No parasite process (top); CPU at 2.84–2.90 GHz (no thermal throttling).
+- 30 % of CPU time in the kernel (`sy`): threads competing for the CPU.
+- Hypothesis: oversubscription. OpenVINO already uses all cores; the tracker's numpy
+  operations (Kalman filters, cost matrices) start extra OpenBLAS threads.
+- Test with `OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1`: 16.5–18.8 img/s, median 65–77 ms.
+  Hypothesis confirmed.
+
+**Fix:** BLAS/OpenMP limited to one thread in `fm_perception/__init__.py` (set before numpy is
+imported). Verified without any variable on the command line, VS Code closed:
+
+| | Before fix | After fix |
+|---|---|---|
+| Processed | 8–10.6 img/s | 18.6–19.9 img/s |
+| Median latency | 105–139 ms | 62–70 ms |
+| p95 | 146–226 ms | 80–117 ms |
+
+**Criterion P3-a (>= 10 FPS with simulation running), with tracking and selection: PASS**
+(margin x1.9). Tracking cost vs phase 3 node: ~-4 img/s, ~+12 ms median.
+
+**Observation:** memory pressure (158 MB free, 1.2 GB in swap, kswapd active) during the
+anomaly run; likely contributor to latency spikes. VS Code closed for performance measurements.

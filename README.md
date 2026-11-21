@@ -10,10 +10,10 @@ latencies, log analysis and failure-mode checks.
 > embedded computer vision, flight control architectures and C++.
 
 ## Status
-**Phase 3 — Detection: done.** A ROS 2 Python node runs YOLOv8n (OpenVINO, 320 px) on the
-camera stream and publishes person detections at 23 FPS with the full simulation running.
-Configuration chosen from a CPU benchmark. Next: tracking and target lock.
-
+**Phase 4 — Tracking and target lock: done.** ByteTrack keeps a stable identity for each
+person; a ROS-free target selector (15 unit tests) locks the person designated by the operator,
+survives occlusions and refuses passers-by, and never re-acquires on its own. Published as
+`fm_interfaces/TargetState` at 19 FPS with the full simulation running. Next: visual servoing.
 ![Takeoff and landing: setpoint vs estimated altitude](docs/img/phase1_takeoff_landing.png)
 
 ## Key results so far
@@ -31,7 +31,12 @@ Configuration chosen from a CPU benchmark. Next: tracking and target lock.
   reference sequence ([data](docs/bench_phase3.csv)); OpenVINO 320 selected (28.7 FPS with
   Gazebo, detection within 0.5 point of the 640 px reference). Detector node: 23 FPS and
   54 ms median capture-to-publish latency with SITL, QGC and monitoring running.
-
+- **Target lock tested against passers-by:** a distractor test on a public pedestrian video
+  failed twice (relock on an occluding passer-by, then automatic re-acquisition of a stranger);
+  each root cause was diagnosed with instrumented runs, fixed with unit-tested rules, and the
+  design changed to operator designation ([ADR-001](docs/decisions.md)). Live node: 19 FPS,
+  65 ms median capture-to-publish latency, after fixing a thread-oversubscription issue that
+  had halved throughput.
 ## Architecture
 
 ```
@@ -79,6 +84,7 @@ and `px4_msgs` must match the PX4 build.
 ├── tools/               # flight analysis scripts (mission, failsafe)
 ├── docs/                # test log, procedures, campaign data, figures
 ├── src/
+│   ├── fm_interfaces/   # TargetState message, LockTarget service
 │   ├── fm_perception/   # Python perception package (detector_node)
 │   ├── fm_control/      # C++ control package (px4_monitor)
 │   ├── px4_msgs/        # submodule, pinned to the PX4 version in use
@@ -109,8 +115,8 @@ ros2 topic list | grep fmu
 - [x] **Phase 0** — Simulation stack, repository, first C++ nodes
 - [x] **Phase 1** — Read PX4 state from ROS 2 (C++ monitor node)
 - [x] **Phase 2** — Safe Offboard control: scripted flight, explicit state machine
-- [ ] **Phase 3** — YOLOv8 detection, CPU optimisation (OpenVINO), latency benchmark
-- [ ] **Phase 4** — Tracking (ByteTrack) and target lock logic
+- [x] **Phase 3** — YOLOv8 detection, CPU optimisation (OpenVINO), latency benchmark
+- [x] **Phase 4** — Tracking (ByteTrack) and target lock logic
 - [ ] **Phase 5** — Visual servoing controller (PID) with safety layers
 - [ ] **Phase 6** — Test campaign: test plan, measurements, test report
 - [ ] **Phase 7** — Demo video, closed loop with the simulated onboard camera

@@ -46,3 +46,6 @@ Reverse order: command first, infrastructure last.
 - **One benchmark at a time**: two measurements running in parallel share the CPU and invalidate
   each other's latencies (detection results remain valid offline).
 - Simulation only when the condition under test requires it (e.g. condition "gazebo").
+- Close VS Code and other memory-heavy applications: with 8 GB of RAM, swapping causes latency spikes.
+- If throughput suddenly drops: check `top` (parasite processes, high `sy` kernel time),
+  `grep MHz /proc/cpuinfo` (throttling) and `free -h` (swap) before suspecting the code.
